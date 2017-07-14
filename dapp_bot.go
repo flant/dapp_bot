@@ -13,8 +13,9 @@ import (
 	"strconv"
 )
 
-const tips_file_url string = "https://raw.githubusercontent.com/alexey-igrychev/dapp/master/docs/hints"
 const chats_file string = "chats"
+var tips_file_url *string
+var notification_period *int
 
 func handle_update(token string) {
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -74,12 +75,12 @@ func handle_notification(token string) {
 			chat_id_int_64, _ := strconv.ParseInt(string(chat_id), 10, 64)
 			send_tip(bot, chat_id_int_64, random_tip(tips))
 		}
-		time.Sleep(time.Second * 60 * 60)
+		time.Sleep(time.Second * time.Duration(*notification_period))
 	}
 }
 
 func current_tips() ([]string) {
-	resp, err := http.Get(tips_file_url)
+	resp, err := http.Get(*tips_file_url)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -175,10 +176,16 @@ func send_tip(bot *tgbotapi.BotAPI, chat_id int64, tip string) {
 
 func main() {
 	token := flag.String("token", "", "telegram bot token")
+	tips_file_url = flag.String("tips-url", "", "tips file url")
+	notification_period = flag.Int("notification-period", 0, "notification period in seconds")
 	flag.Parse()
 
 	if *token == "" {
 		log.Fatal("token flag required")
+	} else if *tips_file_url == "" {
+		log.Fatal("tips-url flag required")
+	} else if *notification_period == 0 {
+		log.Fatal("notification-period flag required")
 	}
 
 	go handle_notification(*token)
